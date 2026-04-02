@@ -76,3 +76,81 @@ INERT_SENTINELS = (
 # -----------------------------
 # Errors (domain-level)
 # -----------------------------
+
+class ApexiusError(Exception):
+    code = "apexius_error"
+
+    def __init__(self, message: str, *, details: t.Any = None):
+        super().__init__(message)
+        self.message = message
+        self.details = details
+
+
+class BadInput(ApexiusError):
+    code = "bad_input"
+
+
+class NotFound(ApexiusError):
+    code = "not_found"
+
+
+class Conflict(ApexiusError):
+    code = "conflict"
+
+
+class Unauthorized(ApexiusError):
+    code = "unauthorized"
+
+
+class TooLate(ApexiusError):
+    code = "too_late"
+
+
+class TooSoon(ApexiusError):
+    code = "too_soon"
+
+
+class Accounting(ApexiusError):
+    code = "accounting"
+
+
+# -----------------------------
+# Small helpers (time, json)
+# -----------------------------
+
+def utc_now_s() -> int:
+    return int(time.time())
+
+
+def iso_utc(ts: int | float | None = None) -> str:
+    if ts is None:
+        ts = time.time()
+    return _dt.datetime.fromtimestamp(float(ts), tz=_dt.timezone.utc).isoformat()
+
+
+def clamp_int(x: int, lo: int, hi: int, *, what: str) -> int:
+    if not isinstance(x, int):
+        raise BadInput(f"{what} must be int")
+    if x < lo or x > hi:
+        raise BadInput(f"{what} out of range", details={"lo": lo, "hi": hi, "got": x})
+    return x
+
+
+def ensure_hex(s: str, *, what: str) -> str:
+    if not isinstance(s, str):
+        raise BadInput(f"{what} must be string")
+    if not s.startswith("0x"):
+        raise BadInput(f"{what} must start with 0x")
+    h = s[2:]
+    if len(h) == 0 or len(h) % 2 != 0:
+        raise BadInput(f"{what} invalid hex length")
+    try:
+        int(h, 16)
+    except Exception as e:
+        raise BadInput(f"{what} invalid hex") from e
+    return s
+
+
+def b64u(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
